@@ -20,28 +20,52 @@ class S3Service:
     
     def __init__(self):
         """Initialize S3 service."""
-        # Get AWS credentials from environment variables
-        self.aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID")
-        self.aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
-        self.bucket_name = os.environ.get("AWS_BUCKET_NAME")
-        self.region = os.environ.get("AWS_REGION")
+        # Get AWS/S3 credentials from environment variables
+        # Prefer the standard AWS_* variables but fall back to S3_* for
+        # compatibility with the provided `.env.example` and docker compose.
+        self.aws_access_key_id = (
+            os.environ.get("AWS_ACCESS_KEY_ID")
+            or os.environ.get("S3_ACCESS_KEY")
+        )
+        self.aws_secret_access_key = (
+            os.environ.get("AWS_SECRET_ACCESS_KEY")
+            or os.environ.get("S3_SECRET_KEY")
+        )
+        self.bucket_name = (
+            os.environ.get("AWS_BUCKET_NAME")
+            or os.environ.get("S3_BUCKET_NAME")
+        )
+        self.region = os.environ.get("AWS_REGION") or os.environ.get("S3_REGION")
         
         # Thread pool for handling blocking S3 operations
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
         
         # Print environment variables for debugging (without sensitive info)
-        logger.debug(f"AWS_ACCESS_KEY_ID: {'*' * 8 if self.aws_access_key_id else 'Not Set'}")
-        logger.debug(f"AWS_SECRET_ACCESS_KEY: {'*' * 8 if self.aws_secret_access_key else 'Not Set'}")
-        logger.debug(f"AWS_BUCKET_NAME: {self.bucket_name}")
-        logger.debug(f"AWS_REGION: {self.region}")
+        logger.debug(
+            f"AWS/S3 ACCESS_KEY_ID: {'*' * 8 if self.aws_access_key_id else 'Not Set'}"
+        )
+        logger.debug(
+            f"AWS/S3 SECRET_ACCESS_KEY: {'*' * 8 if self.aws_secret_access_key else 'Not Set'}"
+        )
+        logger.debug(f"S3 BUCKET_NAME: {self.bucket_name}")
+        logger.debug(f"S3 REGION: {self.region}")
         
-        # Check if credentials are provided
-        using_dummy_credentials = (self.aws_access_key_id == "dummy_access_key_id" or 
-                                 self.aws_secret_access_key == "dummy_secret_access_key" or 
-                                 self.bucket_name == "dummy-bucket-name")
-        
-        if using_dummy_credentials:
-            logger.warning("Using dummy AWS credentials. S3 uploads will return mock URLs instead.")
+        # Check if credentials are provided or if dummy values are used
+        missing_creds = (
+            not self.aws_access_key_id
+            or not self.aws_secret_access_key
+            or not self.bucket_name
+        )
+        using_dummy_credentials = (
+            self.aws_access_key_id == "dummy_access_key_id"
+            or self.aws_secret_access_key == "dummy_secret_access_key"
+            or self.bucket_name == "dummy-bucket-name"
+        )
+
+        if missing_creds or using_dummy_credentials:
+            logger.warning(
+                "AWS/S3 credentials are missing or dummy. S3 uploads will return mock URLs instead."
+            )
             self.s3_client = None
             return
             

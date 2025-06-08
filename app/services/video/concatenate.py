@@ -358,10 +358,10 @@ def check_s3_configuration() -> Dict[str, Any]:
     
     # Get environment variables (masked for security)
     env_vars = {
-        "AWS_REGION": os.environ.get("AWS_REGION", "Not set"),
-        "AWS_BUCKET_NAME": os.environ.get("AWS_BUCKET_NAME", "Not set"),
-        "AWS_ACCESS_KEY_ID": "***" if os.environ.get("AWS_ACCESS_KEY_ID") else "Not set",
-        "AWS_SECRET_ACCESS_KEY": "***" if os.environ.get("AWS_SECRET_ACCESS_KEY") else "Not set"
+        "AWS_REGION": os.environ.get("AWS_REGION") or os.environ.get("S3_REGION", "Not set"),
+        "AWS_BUCKET_NAME": os.environ.get("AWS_BUCKET_NAME") or os.environ.get("S3_BUCKET_NAME", "Not set"),
+        "AWS_ACCESS_KEY_ID": "***" if (os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("S3_ACCESS_KEY")) else "Not set",
+        "AWS_SECRET_ACCESS_KEY": "***" if (os.environ.get("AWS_SECRET_ACCESS_KEY") or os.environ.get("S3_SECRET_KEY")) else "Not set"
     }
     
     # Details based on initialization status
@@ -371,19 +371,19 @@ def check_s3_configuration() -> Dict[str, Any]:
         details = "S3 storage is not initialized. Check AWS credentials and bucket configuration."
         
         # Add more specific diagnostics
-        if not env_vars["AWS_REGION"]:
-            details += " AWS_REGION is not set."
+        if not env_vars["AWS_REGION"] or env_vars["AWS_REGION"] == "Not set":
+            details += " AWS_REGION/S3_REGION is not set."
         
-        if not env_vars["AWS_BUCKET_NAME"]:
-            details += " No bucket name is set (check AWS_BUCKET_NAME)."
+        if not env_vars["AWS_BUCKET_NAME"] or env_vars["AWS_BUCKET_NAME"] == "Not set":
+            details += " No bucket name is set (check S3_BUCKET_NAME or AWS_BUCKET_NAME)."
         else:
             details += f" Using AWS_BUCKET_NAME='{bucket_name}'."
         
-        if not os.environ.get("AWS_ACCESS_KEY_ID"):
-            details += " AWS_ACCESS_KEY_ID is not set."
+        if not (os.environ.get("AWS_ACCESS_KEY_ID") or os.environ.get("S3_ACCESS_KEY")):
+            details += " AWS_ACCESS_KEY_ID/S3_ACCESS_KEY is not set."
         
-        if not os.environ.get("AWS_SECRET_ACCESS_KEY"):
-            details += " AWS_SECRET_ACCESS_KEY is not set."
+        if not (os.environ.get("AWS_SECRET_ACCESS_KEY") or os.environ.get("S3_SECRET_KEY")):
+            details += " AWS_SECRET_ACCESS_KEY/S3_SECRET_KEY is not set."
     
     return {
         "initialized": is_initialized,
